@@ -1,4 +1,5 @@
-
+pip install streamlit matplotlib
+streamlit run dosimetria_penal.py
 import streamlit as st
 import sys
 import os
