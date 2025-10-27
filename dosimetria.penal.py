@@ -1,19 +1,8 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import sys
-import os
+import math
 
 # Configuração
 st.set_page_config(page_title="Dosimetria da Pena", page_icon="⚖️")
-
-# Tenta importar matplotlib com fallback
-try:
-    import matplotlib.pyplot as plt
-    matplotlib_available = True
-except ImportError as e:
-    st.error("⚠️ Matplotlib não está disponível. O gráfico não será exibido.")
-    matplotlib_available = False
-    plt = None
 
 # Título
 st.title("⚖️ Simulador de Dosimetria da Pena")
@@ -114,64 +103,68 @@ if st.button("🎯 Calcular Pena Final"):
 
     st.markdown(f"<h3 style='color: {cor}'>{regime}</h3>", unsafe_allow_html=True)
 
-    # Gráfico (apenas se matplotlib estiver disponível)
-    if matplotlib_available:
-        st.subheader("📊 Dosimetria da Pena")
+    # 📊 GRÁFICO VISUAL COM HTML/CSS
+    st.subheader("📊 Dosimetria da Pena - Gráfico Visual")
+    
+    # Calcular porcentagens para o gráfico
+    faixa_total = max_pena - min_pena
+    pos_base = ((pena_base - min_pena) / faixa_total) * 100 if faixa_total > 0 else 50
+    pos_final = ((pena_final - min_pena) / faixa_total) * 100 if faixa_total > 0 else 50
+    
+    # Criar gráfico com HTML/CSS
+    st.markdown(f"""
+    <div style="background: #f0f2f6; padding: 20px; border-radius: 10px; margin: 20px 0;">
+        <div style="position: relative; height: 80px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #ccc;">
+            <!-- Linha da Pena Base -->
+            <div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 4px; background: blue; transform: translateX(-50%);">
+                <div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-weight: bold; color: blue;">
+                    ⚖️ Base: {pena_base:.1f} anos
+                </div>
+            </div>
+            
+            <!-- Linha da Pena Final -->
+            <div style="position: absolute; left: {pos_final}%; top: 0; bottom: 0; width: 4px; background: red; transform: translateX(-50%);">
+                <div style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-weight: bold; color: red;">
+                    🎯 Final: {pena_final:.1f} anos
+                </div>
+            </div>
+            
+            <!-- Marcadores de regime -->
+            <div style="position: absolute; left: 0%; bottom: -40px; font-size: 12px;">
+                🔓 Aberto<br>(<4 anos)
+            </div>
+            <div style="position: absolute; left: 50%; bottom: -40px; transform: translateX(-50%); font-size: 12px;">
+                🔐 Semiaberto<br>(4-8 anos)
+            </div>
+            <div style="position: absolute; right: 0%; bottom: -40px; font-size: 12px;">
+                🔒 Fechado<br>(>8 anos)
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Legenda do gráfico
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("🟩 **Regime Aberto** - Até 4 anos")
+    with col2:
+        st.markdown("🟨 **Regime Semiaberto** - 4 a 8 anos")
+    with col3:
+        st.markdown("🟥 **Regime Fechado** - Acima de 8 anos")
+    
+    # Detalhamento numérico
+    st.subheader("📈 Detalhamento do Cálculo")
+    
+    detalhes = f"""
+    | Etapa | Valor | Cálculo |
+    |-------|-------|---------|
+    | Pena Mínima | {min_pena} anos | - |
+    | Pena Máxima | {max_pena} anos | - |
+    | **Pena Base** | **{pena_base:.1f} anos** | ({min_pena} + {max_pena}) ÷ 2 |
+    | Atenuantes ({len(atenuantes)}) | -{pena_base * (1/6) * len(atenuantes):.1f} anos | -1/6 para cada |
+    | Agravantes ({len(agravantes)}) | +{pena_base * (1/6) * len(agravantes):.1f} anos | +1/6 para cada |
+    | **Pena Final** | **{pena_final:.1f} anos** | Base + Ajustes |
+    """
+    
+    st.markdown(detalhes)
 
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        categorias = ['Pena Mínima', 'Pena Base', 'Pena Final', 'Pena Máxima']
-        valores = [min_pena, pena_base, pena_final, max_pena]
-        cores = ['lightblue', 'blue', 'red', 'lightcoral']
-
-        bars = ax.bar(categorias, valores, color=cores)
-        ax.set_ylabel('Anos de Pena')
-        ax.set_title('Evolução da Dosimetria')
-
-        # Adicionar valores nas barras
-        for bar, valor in zip(bars, valores):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1,
-                    f'{valor:.1f} anos', ha='center', va='bottom')
-
-        st.pyplot(fig)
-    else:
-        st.info("📈 Para visualizar o gráfico, instale o matplotlib: `pip install matplotlib`")
-
-# Tabela de referência
-st.header("📋 Tabela de Regimes")
-
-regimes = [
-    {"Pena": "Até 4 anos", "Regime": "Aberto", "Características": "Albergado, trabalho externo"},
-    {"Pena": "4 a 8 anos", "Regime": "Semiaberto", "Características": "Colônia agrícola, industrial"},
-    {"Pena": "Acima de 8 anos", "Regime": "Fechado", "Características": "Presídio de segurança"}
-]
-
-st.table(regimes)
-
-# Material de estudo
-with st.expander("📚 Fundamentação Legal"):
-    st.write("""
-    **Art. 68 CP - Critérios para dosimetria:**
-    1. Pena base conforme crime
-    2. Atenuantes (reduzem 1/6 cada)
-    3. Agravantes (aumentam 1/6 cada)
-    4. Majorantes e minorantes
-
-    **Regimes:**
-    - Fechado: pena > 8 anos
-    - Semiaberto: pena 4-8 anos
-    - Aberto: pena < 4 anos
-    """)
-
-st.sidebar.header("📖 Jurisprudência")
-st.sidebar.write("""
-**Súmulas relevantes:**
-- STF Súmula 715
-- STJ Súmula 341
-""")
-
-# Rodapé
-st.markdown("---")
-st.write("**Ferramenta educacional - Consulte sempre a legislação atual**")
-st.write("**🌐 Fontes Oficiais:**")
-st.write("[Código Penal](https://www.planalto.gov.br/ccivil_03/decreto-lei/del2848compilado.htm) | [Planalto](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13105.htm)")
