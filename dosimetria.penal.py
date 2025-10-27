@@ -1,9 +1,19 @@
 
 import streamlit as st
-import matplotlib.pyplot as plt
+import sys
+import os
 
 # Configuração
 st.set_page_config(page_title="Dosimetria da Pena", page_icon="⚖️")
+
+# Tenta importar matplotlib com fallback
+try:
+    import matplotlib.pyplot as plt
+    matplotlib_available = True
+except ImportError as e:
+    st.error("⚠️ Matplotlib não está disponível. O gráfico não será exibido.")
+    matplotlib_available = False
+    plt = None
 
 # Título
 st.title("⚖️ Simulador de Dosimetria da Pena")
@@ -104,25 +114,28 @@ if st.button("🎯 Calcular Pena Final"):
 
     st.markdown(f"<h3 style='color: {cor}'>{regime}</h3>", unsafe_allow_html=True)
 
-    # Gráfico
-    st.subheader("📊 Dosimetria da Pena")
+    # Gráfico (apenas se matplotlib estiver disponível)
+    if matplotlib_available:
+        st.subheader("📊 Dosimetria da Pena")
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-    categorias = ['Pena Mínima', 'Pena Base', 'Pena Final', 'Pena Máxima']
-    valores = [min_pena, pena_base, pena_final, max_pena]
-    cores = ['lightblue', 'blue', 'red', 'lightcoral']
+        categorias = ['Pena Mínima', 'Pena Base', 'Pena Final', 'Pena Máxima']
+        valores = [min_pena, pena_base, pena_final, max_pena]
+        cores = ['lightblue', 'blue', 'red', 'lightcoral']
 
-    bars = ax.bar(categorias, valores, color=cores)
-    ax.set_ylabel('Anos de Pena')
-    ax.set_title('Evolução da Dosimetria')
+        bars = ax.bar(categorias, valores, color=cores)
+        ax.set_ylabel('Anos de Pena')
+        ax.set_title('Evolução da Dosimetria')
 
-    # Adicionar valores nas barras
-    for bar, valor in zip(bars, valores):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1,
-                f'{valor:.1f} anos', ha='center', va='bottom')
+        # Adicionar valores nas barras
+        for bar, valor in zip(bars, valores):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1,
+                    f'{valor:.1f} anos', ha='center', va='bottom')
 
-    st.pyplot(fig)
+        st.pyplot(fig)
+    else:
+        st.info("📈 Para visualizar o gráfico, instale o matplotlib: `pip install matplotlib`")
 
 # Tabela de referência
 st.header("📋 Tabela de Regimes")
@@ -149,7 +162,7 @@ with st.expander("📚 Fundamentação Legal"):
     - Semiaberto: pena 4-8 anos
     - Aberto: pena < 4 anos
     """)
-    # Pode adicionar consulta a APIs jurídicas
+
 st.sidebar.header("📖 Jurisprudência")
 st.sidebar.write("""
 **Súmulas relevantes:**
@@ -157,10 +170,8 @@ st.sidebar.write("""
 - STJ Súmula 341
 """)
 
-
 # Rodapé
 st.markdown("---")
-st.write("**GitHub:** github.com/seu-usuario/dosimetria-penal")
-st.write("*Ferramenta educacional - Consulte sempre a legislação atual*")
+st.write("**Ferramenta educacional - Consulte sempre a legislação atual**")
 st.write("**🌐 Fontes Oficiais:**")
 st.write("[Código Penal](https://www.planalto.gov.br/ccivil_03/decreto-lei/del2848compilado.htm) | [Planalto](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13105.htm)")
