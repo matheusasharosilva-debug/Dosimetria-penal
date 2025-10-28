@@ -1,14 +1,10 @@
 import streamlit as st
 import pandas as pd
-# Título
 st.title("⚖️ Simulador de Dosimetria da Pena")
 st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
-# ========== DADOS COMPLETOS EMBEDADOS NO CÓDIGO ==========
 @st.cache_data
 def carregar_dados_embedados():
-    """Carrega dados completos do Código Penal diretamente no código"""
     dados = [
-        # Artigo_Base, Artigo_Completo, Tipo_Penal, Descricao_Crime, Pena_Minima_Valor, Pena_Minima_Unidade, Pena_Maxima_Valor, Pena_Maxima_Unidade, Pena_Minima_Texto, Pena_Maxima_Texto
         ['Art. 121', 'Art. 121', 'Crime Base (Caput)', 'Matar alguém:', 72, 'mês', 240, 'mês', 'seis anos', 'vinte anos'],
         ['', 'V -', 'Crime Base (Caput)', 'para assegurar a execução, a ocultação, a impunidade ou vantagem de outro crime:', 144, 'mês', 360, 'mês', 'doze anos', 'trinta anos'],
         ['', 'X -', 'Crime Base (Caput)', 'nas dependências de instituição de ensino:', 144, 'mês', 360, 'mês', 'doze anos', 'trinta anos'],
@@ -75,16 +71,10 @@ def carregar_dados_embedados():
         ['Art. 331', 'Art. 331', 'Crime Base (Caput)', 'Desacatar funcionário público no exercício da função ou em razão dela:', 6, 'mês', 6, 'mês', 'seis meses', 'seis meses'],
         ['Art. 334', 'Art. 334', 'Crime Base (Caput)', 'Iludir, no todo ou em parte, o pagamento de direito ou imposto devido pela entrada, pela saída ou pelo consumo de mercadoria:', 12, 'mês', 48, 'mês', 'um ano', 'quatro anos'],
     ]
-    colunas = [
-        'Artigo_Base', 'Artigo_Completo', 'Tipo_Penal', 'Descricao_Crime',
-        'Pena_Minima_Valor', 'Pena_Minima_Unidade', 'Pena_Maxima_Valor', 
-        'Pena_Maxima_Unidade', 'Pena_Minima_Texto', 'Pena_Maxima_Texto'
-    ]
+    colunas = ['Artigo_Base','Artigo_Completo','Tipo_Penal','Descricao_Crime','Pena_Minima_Valor','Pena_Minima_Unidade','Pena_Maxima_Valor','Pena_Maxima_Unidade','Pena_Minima_Texto','Pena_Maxima_Texto']
     return pd.DataFrame(dados, columns=colunas)
-# ========== PROCESSAR DADOS PARA O SIMULADOR ==========
 @st.cache_data
 def processar_dados_crimes(df):
-    """Processa os dados para criar o dicionário de crimes"""
     crimes_dict = {}
     for idx, row in df.iterrows():
         artigo_completo = row['Artigo_Completo']
@@ -94,7 +84,6 @@ def processar_dados_crimes(df):
         pena_max_valor = row['Pena_Maxima_Valor']
         pena_max_unidade = row['Pena_Maxima_Unidade']
         tipo_penal = row['Tipo_Penal']
-        # Converter para anos
         if pena_min_unidade == 'mês' or pena_min_unidade == 'mese':
             pena_min_anos = pena_min_valor / 12
         elif pena_min_unidade == 'dia':
@@ -107,9 +96,6 @@ def processar_dados_crimes(df):
             pena_max_anos = pena_max_valor / 360
         else:
             pena_max_anos = pena_max_valor
-        # Calcular pena base (média)
-        pena_base = (pena_min_anos + pena_max_anos) / 2
-        # Criar chave única
         if pd.notna(artigo_completo) and pd.notna(descricao):
             chave = f"{artigo_completo} - {descricao[:80]}..."
             crimes_dict[chave] = {
@@ -117,29 +103,14 @@ def processar_dados_crimes(df):
                 'descricao_completa': descricao,
                 'pena_min': pena_min_anos,
                 'pena_max': pena_max_anos,
-                'pena_base': pena_base,
                 'tipo_penal': tipo_penal
             }
     return crimes_dict
-# Carregar e processar dados
 df = carregar_dados_embedados()
 crimes_data = processar_dados_crimes(df)
-# Sidebar com informações
 st.sidebar.header("💡 Sobre")
-st.sidebar.write("""
-**Base Legal:**
-- Art. 68 do Código Penal
-- Fases da dosimetria:
-  1. Pena base + circunstâncias
-  2. Atenuantes/Agravantes
-  3. Majorantes/Minorantes
-  4. Cálculo final
-  5. Regime
-  6. Substituição
-""")
-# Mostrar estatísticas
+st.sidebar.write("**Base Legal:** Art. 68 do Código Penal - Fases: 1.Pena base 2.Atenuantes/Agravantes 3.Majorantes/Minorantes 4.Cálculo 5.Regime 6.Substituição")
 st.sidebar.write(f"**📊 Crimes carregados:** {len(crimes_data)}")
-# Busca de crimes
 st.sidebar.write("**🔍 Buscar crime:**")
 busca = st.sidebar.text_input("Digite o artigo ou descrição:")
 if busca:
@@ -147,142 +118,70 @@ if busca:
     st.sidebar.write(f"**Resultados ({len(crimes_filtrados)}):**")
     for chave in list(crimes_filtrados.keys())[:5]:
         crime_info = crimes_filtrados[chave]
-        st.sidebar.write(f"**{crime_info['artigo']}**")
-        st.sidebar.write(f"Pena: {crime_info['pena_min']:.1f}-{crime_info['pena_max']:.1f} anos")
-        st.sidebar.write("---")
-# ========== FASE 1: PENA BASE + CIRCUNSTÂNCIAS ==========
+        st.sidebar.write(f"**{crime_info['artigo']}** - Pena: {crime_info['pena_min']:.1f}-{crime_info['pena_max']:.1f} anos")
 st.header("1️⃣ Fase 1: Pena Base e Circunstâncias")
 col1, col2 = st.columns([2, 1])
 with col1:
     if crimes_data:
-        crime_selecionado = st.selectbox(
-            "Selecione o Crime:",
-            options=list(crimes_data.keys()),
-            format_func=lambda x: x
-        )
+        crime_selecionado = st.selectbox("Selecione o Crime:",options=list(crimes_data.keys()),format_func=lambda x: x)
         crime_info = crimes_data[crime_selecionado]
         min_pena = crime_info['pena_min']
         max_pena = crime_info['pena_max']
-        pena_base_inicial = crime_info['pena_base']
         st.write(f"**Artigo:** {crime_info['artigo']}")
         st.write(f"**Tipo penal:** {crime_info['tipo_penal']}")
-        st.write(f"**Descrição completa:** {crime_info['descricao_completa']}")
+        st.write(f"**Descrição:** {crime_info['descricao_completa']}")
     else:
         st.error("Erro ao carregar dados dos crimes.")
 with col2:
-    circunstancia = st.radio("Circunstância do Crime:", [
-        "Neutra",
-        "Desfavorável",
-        "Gravemente Desfavorável"
-    ])
-    # Ajuste por circunstância
-    ajuste_circunstancia = {
-        "Neutra": 0,
-        "Desfavorável": 0.2,
-        "Gravemente Desfavorável": 0.4
-    }
-    # Aplica ajuste da circunstância
+    circunstancia = st.radio("Circunstância do Crime:",["Neutra","Desfavorável","Gravemente Desfavorável"])
+    # CORREÇÃO: PENA BASE COMEÇA NA MÍNIMA E É AJUSTADA POR CIRCUNSTÂNCIAS
+    pena_base_inicial = min_pena  # CORREÇÃO: Começa na pena mínima, não na média
+    ajuste_circunstancia = {"Neutra": 0,"Desfavorável": 0.2,"Gravemente Desfavorável": 0.4}
     fator_circunstancia = ajuste_circunstancia[circunstancia]
     pena_base_ajustada = pena_base_inicial * (1 + fator_circunstancia)
-    st.write(f"**Pena prevista no tipo penal:** {min_pena:.1f} a {max_pena:.1f} anos")
+    st.write(f"**Pena prevista:** {min_pena:.1f} a {max_pena:.1f} anos")
     st.write(f"**Pena base inicial:** {pena_base_inicial:.1f} anos")
-    st.write(f"**Circunstância {circunstancia.lower()}:** {fator_circunstancia*100:.0f}% de ajuste")
+    st.write(f"**Circunstância {circunstancia.lower()}:** {fator_circunstancia*100:.0f}%")
     st.success(f"**PENA BASE APÓS CIRCUNSTÂNCIAS: {pena_base_ajustada:.1f} anos**")
-# ========== FASE 2: ATENUANTES E AGRAVANTES ==========
 st.header("2️⃣ Fase 2: Atenuantes e Agravantes Gerais")
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("🔽 Atenuantes (Art. 65 CP)")
-    atenuantes = st.multiselect(
-        "Selecione as atenuantes:",
-        [
-            "Réu primário de bons antecedentes",
-            "Arrependimento espontâneo",
-            "Confissão espontânea",
-            "Reparação do dano",
-            "Coação moral",
-            "Embriaguez acidental",
-            "Motivo de relevante valor social/moral"
-        ]
-    )
+    atenuantes = st.multiselect("Selecione as atenuantes:",["Réu primário de bons antecedentes","Arrependimento espontâneo","Confissão espontânea","Reparação do dano","Coação moral","Embriaguez acidental","Motivo de relevante valor social/moral"])
 with col2:
     st.subheader("🔼 Agravantes (Art. 61 CP)")
-    agravantes = st.multiselect(
-        "Selecione as agravantes:",
-        [
-            "Reincidente específico",
-            "Motivo fútil/torpe",
-            "Crime contra idoso/doente",
-            "Uso de disfarce/emboscada",
-            "Abuso de confiança/poder",
-            "Racismo/xenofobia",
-            "Aumento do dano maliciosamente"
-        ]
-    )
-# ========== FASE 3: MAJORANTES E MINORANTES ==========
+    agravantes = st.multiselect("Selecione as agravantes:",["Reincidente específico","Motivo fútil/torpe","Crime contra idoso/doente","Uso de disfarce/emboscada","Abuso de confiança/poder","Racismo/xenofobia","Aumento do dano maliciosamente"])
 st.header("3️⃣ Fase 3: Causas de Aumento/Diminuição")
-majorantes_minorantes_generico = {
-    "majorantes": [
-        "Uso de arma (1/6 a 1/2)",
-        "Violência grave (1/3 a 2/3)",
-        "Concurso de 2+ pessoas (1/4 a 1/2)",
-        "Restrição à liberdade (1/6 a 1/3)",
-        "Abuso de confiança (1/6 a 1/3)"
-    ],
-    "minorantes": [
-        "Valor ínfimo (1/6 a 1/3)",
-        "Arrependimento posterior (1/6 a 1/3)",
-        "Circunstâncias atenuantes não previstas (1/6 a 1/3)"
-    ]
-}
+majorantes_minorantes_generico = {"majorantes": ["Uso de arma (1/6 a 1/2)","Violência grave (1/3 a 2/3)","Concurso de 2+ pessoas (1/4 a 1/2)","Restrição à liberdade (1/6 a 1/3)","Abuso de confiança (1/6 a 1/3)"],"minorantes": ["Valor ínfimo (1/6 a 1/3)","Arrependimento posterior (1/6 a 1/3)","Circunstâncias atenuantes não previstas (1/6 a 1/3)"]}
 col1, col2 = st.columns(2)
 with col1:
-    majorantes = st.multiselect(
-        "Causas de aumento (majorantes):",
-        majorantes_minorantes_generico["majorantes"]
-    )
+    majorantes = st.multiselect("Causas de aumento (majorantes):",majorantes_minorantes_generico["majorantes"])
 with col2:
-    minorantes = st.multiselect(
-        "Causas de diminuição (minorantes):",
-        majorantes_minorantes_generico["minorantes"]
-    )
-# ========== FASE 4: CÁLCULO FINAL ==========
+    minorantes = st.multiselect("Causas de diminuição (minorantes):",majorantes_minorantes_generico["minorantes"])
 st.header("4️⃣ Fase 4: Cálculo Final da Pena")
 if st.button("🎯 Calcular Pena Definitiva", type="primary"):
     pena_calculada = pena_base_ajustada
     st.subheader("📊 Detalhamento do Cálculo")
-    calculo_detalhado = f"""
-| Etapa | Valor | Ajuste |
-|-------|-------|---------|
-| **Pena Base Inicial** | {pena_base_inicial:.1f} anos | - |
-| Circunstância {circunstancia} | {pena_base_ajustada:.1f} anos | {fator_circunstancia*100:+.0f}% |
-"""
-    # Aplica atenuantes (-1/6 cada)
+    calculo_detalhado = f"| Etapa | Valor | Ajuste |\n|-------|-------|---------|\n| **Pena Base Inicial** | {pena_base_inicial:.1f} anos | - |\n| Circunstância {circunstancia} | {pena_base_ajustada:.1f} anos | {fator_circunstancia*100:+.0f}% |\n"
     for i, atenuante in enumerate(atenuantes, 1):
         reducao = pena_base_ajustada * (1/6)
         pena_calculada -= reducao
         calculo_detalhado += f"| Atenuante {i} | {pena_calculada:.1f} anos | -{reducao:.1f} anos |\n"
-
-    # Aplica agravantes (+1/6 cada)
     for i, agravante in enumerate(agravantes, 1):
         aumento = pena_base_ajustada * (1/6)
         pena_calculada += aumento
         calculo_detalhado += f"| Agravante {i} | {pena_calculada:.1f} anos | +{aumento:.1f} anos |\n"
-    # Aplica majorantes (+1/4 cada)
     for i, majorante in enumerate(majorantes, 1):
         aumento = pena_base_ajustada * (1/4)
         pena_calculada += aumento
         calculo_detalhado += f"| Majorante {i} | {pena_calculada:.1f} anos | +{aumento:.1f} anos |\n"
-    # Aplica minorantes (-1/4 cada)
     for i, minorante in enumerate(minorantes, 1):
         reducao = pena_base_ajustada * (1/4)
         pena_calculada -= reducao
         calculo_detalhado += f"| Minorante {i} | {pena_calculada:.1f} anos | -{reducao:.1f} anos |\n"
-    # Limites legais
     pena_final = max(min_pena, min(max_pena, pena_calculada))
     calculo_detalhado += f"| **LIMITES LEGAIS** | **{pena_final:.1f} anos** | **Ajuste final** |"
     st.markdown(calculo_detalhado)
-    # ========== FASE 5: REGIME DE CUMPRIMENTO ==========
     st.header("5️⃣ Fase 5: Regime de Cumprimento")
     if pena_final > 8:
         regime = "FECHADO"
@@ -296,13 +195,7 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
         regime = "ABERTO"
         cor_regime = "#44cc44"
         descricao = "Casa de albergado, trabalho externo"
-    st.markdown(f"""
-    <div style="background-color: {cor_regime}20; padding: 20px; border-radius: 10px; border-left: 5px solid {cor_regime};">
-        <h2 style="color: {cor_regime}; margin: 0;">🔒 REGIME {regime}</h2>
-        <p style="margin: 10px 0 0 0; font-size: 16px;"><strong>{descricao}</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
-    # ========== FASE 6: SUBSTITUIÇÃO DA PENA ==========
+    st.markdown(f"""<div style="background-color: {cor_regime}20; padding: 20px; border-radius: 10px; border-left: 5px solid {cor_regime};"><h2 style="color: {cor_regime}; margin: 0;">🔒 REGIME {regime}</h2><p style="margin: 10px 0 0 0; font-size: 16px;"><strong>{descricao}</strong></p></div>""", unsafe_allow_html=True)
     st.header("6️⃣ Fase 6: Substituição da Pena")
     if pena_final <= 4:
         substituicao = "**CABE SUBSTITUIÇÃO** por pena restritiva de direitos"
@@ -312,13 +205,7 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
         substituicao = "**NÃO CABE SUBSTITUIÇÃO**"
         cor_subst = "#ff4444"
         fundamento = "Art. 44 CP - Penas superiores a 4 anos não podem ser substituídas"
-    st.markdown(f"""
-    <div style="background-color: {cor_subst}20; padding: 15px; border-radius: 10px; border-left: 5px solid {cor_subst};">
-        <h3 style="color: {cor_subst}; margin: 0;">{substituicao}</h3>
-        <p style="margin: 5px 0 0 0;">{fundamento}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    # ========== GRÁFICO VISUAL ==========
+    st.markdown(f"""<div style="background-color: {cor_subst}20; padding: 15px; border-radius: 10px; border-left: 5px solid {cor_subst};"><h3 style="color: {cor_subst}; margin: 0;">{substituicao}</h3><p style="margin: 5px 0 0 0;">{fundamento}</p></div>""", unsafe_allow_html=True)
     st.header("📊 Gráfico da Dosimetria")
     faixa_total = max_pena - min_pena
     if faixa_total > 0:
@@ -327,94 +214,4 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
         pos_final = ((pena_final - min_pena) / faixa_total) * 100
     else:
         pos_base = pos_ajustada = pos_final = 50
-       # Criar gráfico visual com HTML/CSS
-    st.markdown(f"""
-    <div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
-        <h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4>
-
-        <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 60px;">
-
-            <!-- Linha da Pena Base -->
-            <div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 3px; background: #007bff; transform: translateX(-50%);">
-                <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #007bff; font-size: 12px; font-weight: bold; color: #007bff;">
-                    ⚖️ Base: {pena_base_inicial:.1f} anos
-                </div>
-            </div>
-
-            <!-- Linha da Pena Ajustada -->
-            <div style="position: absolute; left: {pos_ajustada}%; top: 0; bottom: 0; width: 3px; background: #6f42c1; transform: translateX(-50%);">
-                <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #6f42c1; font-size: 12px; font-weight: bold; color: #6f42c1;">
-                    📈 Ajustada: {pena_base_ajustada:.1f} anos
-                </div>
-            </div>
-
-            <!-- Linha da Pena Final -->
-            <div style="position: absolute; left: {pos_final}%; top: 0; bottom: 0; width: 4px; background: #dc3545; transform: translateX(-50%);">
-                <div style="position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #dc3545; font-size: 12px; font-weight: bold; color: #dc3545;">
-                    🎯 Final: {pena_final:.1f} anos
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Legenda dos regimes -->
-        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-            <div style="text-align: center;">
-                <div style="background: #d4f8d4; padding: 10px; border-radius: 5px; border: 1px solid #44cc44;">
-                    <strong>🔓 ABERTO</strong><br>
-                    <small>Até 4 anos</small>
-                </div>
-            </div>
-            <div style="text-align: center;">
-                <div style="background: #fff9c4; padding: 10px; border-radius: 5px; border: 1px solid #ffaa00;">
-                    <strong>🔐 SEMIABERTO</strong><br>
-                    <small>4 a 8 anos</small>
-                </div>
-            </div>
-            <div style="text-align: center;">
-                <div style="background: #ffcdd2; padding: 10px; border-radius: 5px; border: 1px solid #ff4444;">
-                    <strong>🔒 FECHADO</strong><br>
-                    <small>Acima de 8 anos</small>
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Resumo final
-    st.success(f"**RESUMO FINAL:** Pena de {pena_final:.1f} anos - Regime {regime} - {substituicao}")
-
-# ========== TABELA DE REFERÊNCIA ==========
-st.header("📋 Tabela de Referência")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.subheader("📊 Regimes")
-    st.table(pd.DataFrame([
-        {"Pena": "Até 4 anos", "Regime": "Aberto"},
-        {"Pena": "4 a 8 anos", "Regime": "Semiaberto"},
-        {"Pena": "Acima de 8 anos", "Regime": "Fechado"}
-    ]))
-
-with col2:
-    st.subheader("⚖️ Fatores")
-    st.table(pd.DataFrame([
-        {"Fator": "Atenuante", "Ajuste": "-1/6"},
-        {"Fator": "Agravante", "Ajuste": "+1/6"},
-        {"Fator": "Majorante", "Ajuste": "+1/6 a +1/2"},
-        {"Fator": "Minorante", "Ajuste": "-1/6 a -1/3"}
-    ]))
-
-with col3:
-    st.subheader("🔀 Substituição")
-    st.table(pd.DataFrame([
-        {"Condição": "Pena ≤ 4 anos", "Substitui": "Sim"},
-        {"Condição": "Pena > 4 anos", "Substitui": "Não"},
-        {"Condição": "Réu reincidente", "Substitui": "Restrita"}
-    ]))
-
-# Rodapé
-st.markdown("---")
-st.write("**⚖️ Ferramenta educacional - Consulte sempre a legislação atual e um profissional do direito**")
-st.write("**📚 Base legal:** Arts. 59, 61, 65, 68 do Código Penal Brasileiro")
+    st.markdown(f"""<div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;"><h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4><div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 60px;"><div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 3px; background: #007bff; transform: translateX(-50%);"><div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #007bff; font-size: 12px; font-weight: bold; color: #007bff;">⚖️ Base: {pena_base_inicial:.1f} anos</div></div><div style="position: absolute; left: {pos_ajustada}%; top: 0; bottom: 0; width: 3px; background: #6f42c1; transform: translateX(-50%);"><div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #6f42c1; font-size: 12px; font-weight: bold; color: #6f42c1;">📈 Ajustada: {pena_base_ajustada:.1f} anos</div></div><div style="position: absolute; left: {pos_final}%; top: 0; bottom: 0; width: 4px; background: #dc3545; transform: translateX(-50%);"><div style="position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #dc3545; font-size: 12px; font-weight: bold; color: #dc3545;">🎯 Final: {pena_final:.1f} anos</div></div></div><div style="display: flex; justify-content: space-between; margin-top: 20px;"><div style="text-align: center;"><div style="background: #d4f8d4; padding: 10px; border-radius: 5px; border: 1px solid #44cc44;"><strong>🔓 ABERTO</strong><br><small>Até 4 anos</small></div></div><div style="text-align: center;"><div style="background: #fff9c4; padding:
