@@ -379,7 +379,9 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
     else:
         pos_base = pos_ajustada = pos_final = 50
 
+    # Criar gráfico visual com HTML/CSS
     st.markdown(f"""
     <div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
         <h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4>
-        <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 
+
+        <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px
