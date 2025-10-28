@@ -1,0 +1,91 @@
+    # Criar gráfico visual com HTML/CSS
+    st.markdown(f"""
+    <div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
+        <h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4>
+
+        <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 60px;">
+
+            <!-- Linha da Pena Base -->
+            <div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 3px; background: #007bff; transform: translateX(-50%);">
+                <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #007bff; font-size: 12px; font-weight: bold; color: #007bff;">
+                    ⚖️ Base: {pena_base_inicial:.1f} anos
+                </div>
+            </div>
+
+            <!-- Linha da Pena Ajustada -->
+            <div style="position: absolute; left: {pos_ajustada}%; top: 0; bottom: 0; width: 3px; background: #6f42c1; transform: translateX(-50%);">
+                <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #6f42c1; font-size: 12px; font-weight: bold; color: #6f42c1;">
+                    📈 Ajustada: {pena_base_ajustada:.1f} anos
+                </div>
+            </div>
+
+            <!-- Linha da Pena Final -->
+            <div style="position: absolute; left: {pos_final}%; top: 0; bottom: 0; width: 4px; background: #dc3545; transform: translateX(-50%);">
+                <div style="position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #dc3545; font-size: 12px; font-weight: bold; color: #dc3545;">
+                    🎯 Final: {pena_final:.1f} anos
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Legenda dos regimes -->
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            <div style="text-align: center;">
+                <div style="background: #d4f8d4; padding: 10px; border-radius: 5px; border: 1px solid #44cc44;">
+                    <strong>🔓 ABERTO</strong><br>
+                    <small>Até 4 anos</small>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <div style="background: #fff9c4; padding: 10px; border-radius: 5px; border: 1px solid #ffaa00;">
+                    <strong>🔐 SEMIABERTO</strong><br>
+                    <small>4 a 8 anos</small>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <div style="background: #ffcdd2; padding: 10px; border-radius: 5px; border: 1px solid #ff4444;">
+                    <strong>🔒 FECHADO</strong><br>
+                    <small>Acima de 8 anos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Resumo final
+    st.success(f"**RESUMO FINAL:** Pena de {pena_final:.1f} anos - Regime {regime} - {substituicao}")
+
+# ========== TABELA DE REFERÊNCIA ==========
+st.header("📋 Tabela de Referência")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.subheader("📊 Regimes")
+    st.table(pd.DataFrame([
+        {"Pena": "Até 4 anos", "Regime": "Aberto"},
+        {"Pena": "4 a 8 anos", "Regime": "Semiaberto"},
+        {"Pena": "Acima de 8 anos", "Regime": "Fechado"}
+    ]))
+
+with col2:
+    st.subheader("⚖️ Fatores")
+    st.table(pd.DataFrame([
+        {"Fator": "Atenuante", "Ajuste": "-1/6"},
+        {"Fator": "Agravante", "Ajuste": "+1/6"},
+        {"Fator": "Majorante", "Ajuste": "+1/6 a +1/2"},
+        {"Fator": "Minorante", "Ajuste": "-1/6 a -1/3"}
+    ]))
+
+with col3:
+    st.subheader("🔀 Substituição")
+    st.table(pd.DataFrame([
+        {"Condição": "Pena ≤ 4 anos", "Substitui": "Sim"},
+        {"Condição": "Pena > 4 anos", "Substitui": "Não"},
+        {"Condição": "Réu reincidente", "Substitui": "Restrita"}
+    ]))
+
+# Rodapé
+st.markdown("---")
+st.write("**⚖️ Ferramenta educacional - Consulte sempre a legislação atual e um profissional do direito**")
+st.write("**📚 Base legal:** Arts. 59, 61, 65, 68 do Código Penal Brasileiro")
