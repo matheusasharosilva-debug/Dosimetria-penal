@@ -213,7 +213,7 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
         pos_final = ((pena_final - min_pena) / faixa_total) * 100
     else:
         pos_base = pos_ajustada = pos_final = 50
-   html_grafico = f"""<div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
+      html_grafico = f"""<div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
 <h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4>
 <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 60px;">
 <div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 3px; background: #007bff; transform: translateX(-50%);">
@@ -232,8 +232,8 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
 <div style="text-align: center;"><div style="background: #ffcdd2; padding: 10px; border-radius: 5px; border: 1px solid #ff4444;"><strong>🔒 FECHADO</strong><br><small>Acima de 8 anos</small></div></div>
 </div>
 </div>"""
-st.markdown(html_grafico, unsafe_allow_html=True)
-st.success(f"**RESUMO FINAL:** Pena de {pena_final:.1f} anos - Regime {regime} - {substituicao}")
+    st.markdown(html_grafico, unsafe_allow_html=True)
+    st.success(f"**RESUMO FINAL:** Pena de {pena_final:.1f} anos - Regime {regime} - {substituicao}")
 st.header("📋 Tabela de Referência")
 col1, col2, col3 = st.columns(3)
 with col1:
