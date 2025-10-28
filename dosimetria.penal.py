@@ -10,80 +10,96 @@ st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
 def carregar_dados_crimes():
     try:
         # Carregar o arquivo Excel
-        df = pd.read_excel('crimes_cp_final.xlsx')
-
+        df = pd.read_excel('crimes_cp_final_em_meses.xlsx')
+        
+        # Debug: mostrar colunas disponíveis
+        st.sidebar.write("📋 Colunas no Excel:", df.columns.tolist())
+        
         # Criar dicionário de crimes
         crimes_dict = {}
-        penas_dict = {}
 
         for idx, row in df.iterrows():
+            artigo_base = row['Artigo_Base']
             artigo_completo = row['Artigo_Completo']
             descricao = row['Descricao_Crime']
-            pena_min = row['Pena_Minima']
-            pena_max = row['Pena_Maxima']
             tipo_penal = row['Tipo_Penal']
+            
+            # Obter valores de pena - ajustar nomes das colunas conforme necessário
+            pena_min_valor = row.get('Pena_Minima_Valor')
+            pena_min_unidade = row.get('Pena_Minima_Unidade')
+            pena_max_valor = row.get('Pena_Maxima_Valor')
+            pena_max_unidade = row.get('Pena_Maxima_Unidade')
+            pena_min_texto = row.get('Pena_Minima_Texto')
+            pena_max_texto = row.get('Pena_Maxima_Texto')
 
             # Processar valores de pena
-            if pd.notna(pena_min) and pd.notna(pena_max):
-                # Converter textos como "seis anos" para números
-                if isinstance(pena_min, str) and any(char.isalpha() for char in pena_min):
-                    # Simplificação - em produção você precisaria de um parser mais robusto
-                    try:
-                        if 'seis' in pena_min.lower():
-                            pena_min_num = 6
-                        elif 'um' in pena_min.lower():
-                            pena_min_num = 1
-                        elif 'dois' in pena_min.lower():
-                            pena_min_num = 2
-                        elif 'três' in pena_min.lower() or 'tres' in pena_min.lower():
-                            pena_min_num = 3
-                        elif 'quatro' in pena_min.lower():
-                            pena_min_num = 4
-                        elif 'cinco' in pena_min.lower():
-                            pena_min_num = 5
-                        else:
-                            pena_min_num = 3  # padrão
-                    except:
-                        pena_min_num = 3
-                else:
-                    try:
-                        pena_min_num = float(pena_min)
-                    except:
-                        pena_min_num = 3
+            pena_min_anos = None
+            pena_max_anos = None
+            
+            # Tentar converter valores numéricos primeiro
+            if pd.notna(pena_min_valor) and pd.notna(pena_max_valor):
+                try:
+                    pena_min_num = float(pena_min_valor)
+                    pena_max_num = float(pena_max_valor)
+                    
+                    # Converter para anos baseado na unidade
+                    if pena_min_unidade == 'mês' or pena_min_unidade == 'mese':
+                        pena_min_anos = pena_min_num / 12
+                    elif pena_min_unidade == 'dia':
+                        pena_min_anos = pena_min_num / 360
+                    else:
+                        pena_min_anos = pena_min_num
+                        
+                    if pena_max_unidade == 'mês' or pena_max_unidade == 'mese':
+                        pena_max_anos = pena_max_num / 12
+                    elif pena_max_unidade == 'dia':
+                        pena_max_anos = pena_max_num / 360
+                    else:
+                        pena_max_anos = pena_max_num
+                        
+                except (ValueError, TypeError):
+                    pena_min_anos = None
+                    pena_max_anos = None
 
-                # Fazer o mesmo para pena máxima
-                if isinstance(pena_max, str) and any(char.isalpha() for char in pena_max):
-                    try:
-                        if 'vinte' in pena_max.lower():
-                            pena_max_num = 20
-                        elif 'trinta' in pena_max.lower():
-                            pena_max_num = 30
-                        elif 'quinze' in pena_max.lower():
-                            pena_max_num = 15
-                        elif 'dez' in pena_max.lower():
-                            pena_max_num = 10
-                        else:
-                            pena_max_num = 10  # padrão
-                    except:
-                        pena_max_num = 10
-                else:
-                    try:
-                        pena_max_num = float(pena_max)
-                    except:
-                        pena_max_num = 10
+            # Se não conseguiu converter numericamente, tentar pelo texto
+            if pena_min_anos is None and pd.notna(pena_min_texto):
+                pena_min_anos = converter_texto_para_anos(pena_min_texto)
+                
+            if pena_max_anos is None and pd.notna(pena_max_texto):
+                pena_max_anos = converter_texto_para_anos(pena_max_texto)
 
+            # Se ainda não tem valores, usar fallback
+            if pena_min_anos is None or pena_max_anos is None:
+                # Fallback baseado no tipo de crime
+                if 'homicídio' in str(descricao).lower() or 'matar' in str(descricao).lower():
+                    pena_min_anos = 6
+                    pena_max_anos = 20
+                elif 'roubo' in str(descricao).lower():
+                    pena_min_anos = 4
+                    pena_max_anos = 10
+                elif 'furto' in str(descricao).lower():
+                    pena_min_anos = 1
+                    pena_max_anos = 4
+                else:
+                    pena_min_anos = 2
+                    pena_max_anos = 6
+
+            # Garantir que temos valores válidos
+            if pena_min_anos is not None and pena_max_anos is not None:
                 # Calcular pena base (média)
-                pena_base = (pena_min_num + pena_max_num) / 2
-
+                pena_base = (pena_min_anos + pena_max_anos) / 2
+                
+                # Criar chave única
                 if pd.notna(artigo_completo) and pd.notna(descricao):
-                    chave = f"{artigo_completo} - {descricao[:50]}..."
+                    chave = f"{artigo_completo} - {descricao}"
                     crimes_dict[chave] = {
                         'artigo': artigo_completo,
+                        'artigo_base': artigo_base if pd.notna(artigo_base) else artigo_completo,
                         'descricao_completa': descricao,
-                        'pena_min': pena_min_num,
-                        'pena_max': pena_max_num,
+                        'pena_min': pena_min_anos,
+                        'pena_max': pena_max_anos,
                         'pena_base': pena_base,
-                        'tipo_penal': tipo_penal
+                        'tipo_penal': tipo_penal if pd.notna(tipo_penal) else 'Crime Base (Caput)'
                     }
 
         return crimes_dict
@@ -91,6 +107,46 @@ def carregar_dados_crimes():
     except Exception as e:
         st.error(f"Erro ao carregar dados do Excel: {e}")
         return {}
+
+def converter_texto_para_anos(texto_pena):
+    """Converte texto de pena (ex: 'seis anos') para valor numérico em anos"""
+    if pd.isna(texto_pena):
+        return 3  # valor padrão
+    
+    texto = str(texto_pena).lower()
+    
+    # Mapeamento de textos para valores
+    mapeamento = {
+        'quinze dias': 15/360,
+        'um mês': 1/12, 'um meses': 1/12,
+        'dois meses': 2/12,
+        'três meses': 3/12, 'tres meses': 3/12,
+        'seis meses': 6/12,
+        'um ano': 1, 'um anos': 1,
+        'dois anos': 2,
+        'três anos': 3, 'tres anos': 3,
+        'quatro anos': 4,
+        'cinco anos': 5,
+        'seis anos': 6,
+        'oito anos': 8,
+        'dez anos': 10,
+        'doze anos': 12,
+        'quinze anos': 15,
+        'vinte anos': 20,
+        'trinta anos': 30
+    }
+    
+    for key, value in mapeamento.items():
+        if key in texto:
+            return value
+    
+    # Tentar extrair números do texto
+    import re
+    numeros = re.findall(r'\d+', texto)
+    if numeros:
+        return float(numeros[0])
+    
+    return 3  # valor padrão se não conseguir converter
 
 # Carregar dados
 crimes_data = carregar_dados_crimes()
@@ -112,15 +168,21 @@ st.sidebar.write("""
 # Mostrar estatísticas dos dados carregados
 if crimes_data:
     st.sidebar.write(f"**📊 Crimes carregados:** {len(crimes_data)}")
+    
+    # Busca de crimes
     st.sidebar.write("**🔍 Buscar crime:**")
     busca = st.sidebar.text_input("Digite o artigo ou descrição:")
+    
     if busca:
         crimes_filtrados = {k: v for k, v in crimes_data.items() if busca.lower() in k.lower()}
-        for chave in list(crimes_filtrados.keys())[:5]:  # Mostrar apenas os 5 primeiros
+        st.sidebar.write(f"**Resultados ({len(crimes_filtrados)}):**")
+        for chave in list(crimes_filtrados.keys())[:10]:  # Mostrar até 10 resultados
             crime_info = crimes_filtrados[chave]
             st.sidebar.write(f"**{crime_info['artigo']}**")
-            st.sidebar.write(f"Pena: {crime_info['pena_min']}-{crime_info['pena_max']} anos")
+            st.sidebar.write(f"Pena: {crime_info['pena_min']:.1f}-{crime_info['pena_max']:.1f} anos")
             st.sidebar.write("---")
+else:
+    st.sidebar.warning("❌ Não foi possível carregar os dados do Excel")
 
 # ========== FASE 1: PENA BASE + CIRCUNSTÂNCIAS ==========
 st.header("1️⃣ Fase 1: Pena Base e Circunstâncias")
@@ -146,6 +208,7 @@ with col1:
         st.write(f"**Descrição completa:** {crime_info['descricao_completa']}")
     else:
         # Fallback para lista fixa se não carregar do Excel
+        st.error("Dados não carregados. Usando lista padrão.")
         crime = st.selectbox("Tipo de Crime:", [
             "Roubo (Art. 157)",
             "Roubo Qualificado (Art. 157, §1º)",
@@ -174,6 +237,7 @@ with col1:
         min_pena = penas_base_fallback[crime]["min"]
         max_pena = penas_base_fallback[crime]["max"]
         pena_base_inicial = penas_base_fallback[crime]["base"]
+        crime_info = {"artigo": crime.split('(')[-1].replace(')', '') if '(' in crime else "Art. Desconhecido"}
 
 with col2:
     circunstancia = st.radio("Circunstância do Crime:", [
@@ -182,21 +246,21 @@ with col2:
         "Gravemente Desfavorável"
     ])
 
-# Ajuste por circunstância
-ajuste_circunstancia = {
-    "Neutra": 0,
-    "Desfavorável": 0.2,  # +20%
-    "Gravemente Desfavorável": 0.4  # +40%
-}
+    # Ajuste por circunstância
+    ajuste_circunstancia = {
+        "Neutra": 0,
+        "Desfavorável": 0.2,  # +20%
+        "Gravemente Desfavorável": 0.4  # +40%
+    }
 
-# Aplica ajuste da circunstância
-fator_circunstancia = ajuste_circunstancia[circunstancia]
-pena_base_ajustada = pena_base_inicial * (1 + fator_circunstancia)
+    # Aplica ajuste da circunstância
+    fator_circunstancia = ajuste_circunstancia[circunstancia]
+    pena_base_ajustada = pena_base_inicial * (1 + fator_circunstancia)
 
-st.write(f"**Pena prevista no tipo penal:** {min_pena} a {max_pena} anos")
-st.write(f"**Pena base inicial:** {pena_base_inicial} anos")
-st.write(f"**Circunstância {circunstancia.lower()}:** {fator_circunstancia*100:.0f}% de ajuste")
-st.success(f"**PENA BASE APÓS CIRCUNSTÂNCIAS: {pena_base_ajustada:.1f} anos**")
+    st.write(f"**Pena prevista no tipo penal:** {min_pena:.1f} a {max_pena:.1f} anos")
+    st.write(f"**Pena base inicial:** {pena_base_inicial:.1f} anos")
+    st.write(f"**Circunstância {circunstancia.lower()}:** {fator_circunstancia*100:.0f}% de ajuste")
+    st.success(f"**PENA BASE APÓS CIRCUNSTÂNCIAS: {pena_base_ajustada:.1f} anos**")
 
 # ========== FASE 2: ATENUANTES E AGRAVANTES ==========
 st.header("2️⃣ Fase 2: Atenuantes e Agravantes Gerais")
@@ -238,7 +302,7 @@ st.header("3️⃣ Fase 3: Causas de Aumento/Diminuição")
 
 st.write("**Causas específicas do tipo penal selecionado:**")
 
-# Lista genérica de majorantes/minorantes (poderia ser expandida com dados do Excel)
+# Lista genérica de majorantes/minorantes
 majorantes_minorantes_generico = {
     "majorantes": [
         "Uso de arma (1/6 a 1/2)",
@@ -279,11 +343,11 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
     st.subheader("📊 Detalhamento do Cálculo")
 
     calculo_detalhado = f"""
-    | Etapa | Valor | Ajuste |
-    |-------|-------|---------|
-    | **Pena Base Inicial** | {pena_base_inicial} anos | - |
-    | Circunstância {circunstancia} | {pena_base_ajustada:.1f} anos | {fator_circunstancia*100:+.0f}% |
-    """
+| Etapa | Valor | Ajuste |
+|-------|-------|---------|
+| **Pena Base Inicial** | {pena_base_inicial:.1f} anos | - |
+| Circunstância {circunstancia} | {pena_base_ajustada:.1f} anos | {fator_circunstancia*100:+.0f}% |
+"""
 
     # Aplica atenuantes (-1/6 cada)
     ajuste_atenuantes = 0
@@ -341,11 +405,11 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
         descricao = "Casa de albergado, trabalho externo"
 
     st.markdown(f"""
-    <div style="background-color: {cor_regime}20; padding: 20px; border-radius: 10px; border-left: 5px solid {cor_regime};">
-        <h2 style="color: {cor_regime}; margin: 0;">🔒 REGIME {regime}</h2>
-        <p style="margin: 10px 0 0 0; font-size: 16px;"><strong>{descricao}</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="background-color: {cor_regime}20; padding: 20px; border-radius: 10px; border-left: 5px solid {cor_regime};">
+    <h2 style="color: {cor_regime}; margin: 0;">🔒 REGIME {regime}</h2>
+    <p style="margin: 10px 0 0 0; font-size: 16px;"><strong>{descricao}</strong></p>
+</div>
+""", unsafe_allow_html=True)
 
     # ========== FASE 6: SUBSTITUIÇÃO DA PENA ==========
     st.header("6️⃣ Fase 6: Substituição da Pena")
@@ -360,74 +424,77 @@ if st.button("🎯 Calcular Pena Definitiva", type="primary"):
         fundamento = "Art. 44 CP - Penas superiores a 4 anos não podem ser substituídas"
 
     st.markdown(f"""
-    <div style="background-color: {cor_subst}20; padding: 15px; border-radius: 10px; border-left: 5px solid {cor_subst};">
-        <h3 style="color: {cor_subst}; margin: 0;">{substituicao}</h3>
-        <p style="margin: 5px 0 0 0;">{fundamento}</p>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="background-color: {cor_subst}20; padding: 15px; border-radius: 10px; border-left: 5px solid {cor_subst};">
+    <h3 style="color: {cor_subst}; margin: 0;">{substituicao}</h3>
+    <p style="margin: 5px 0 0 0;">{fundamento}</p>
+</div>
+""", unsafe_allow_html=True)
 
     # ========== GRÁFICO VISUAL DA DOSIMETRIA ==========
     st.header("📊 Gráfico da Dosimetria")
 
     # Calcular posições para o gráfico
     faixa_total = max_pena - min_pena
-    pos_base = ((pena_base_inicial - min_pena) / faixa_total) * 100
-    pos_ajustada = ((pena_base_ajustada - min_pena) / faixa_total) * 100
-    pos_final = ((pena_final - min_pena) / faixa_total) * 100
+    if faixa_total > 0:
+        pos_base = ((pena_base_inicial - min_pena) / faixa_total) * 100
+        pos_ajustada = ((pena_base_ajustada - min_pena) / faixa_total) * 100
+        pos_final = ((pena_final - min_pena) / faixa_total) * 100
+    else:
+        pos_base = pos_ajustada = pos_final = 50
 
     # Criar gráfico visual com HTML/CSS
     st.markdown(f"""
-    <div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
-        <h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4>
+<div style="background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0;">
+    <h4 style="text-align: center; margin-bottom: 30px;">Evolução da Dosimetria da Pena</h4>
 
-        <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 60px;">
+    <div style="position: relative; height: 120px; background: linear-gradient(90deg, #d4f8d4 0%, #fff9c4 50%, #ffcdd2 100%); border-radius: 10px; border: 2px solid #dee2e6; margin-bottom: 60px;">
 
-            <!-- Linha da Pena Base -->
-            <div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 3px; background: #007bff; transform: translateX(-50%);">
-                <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #007bff; font-size: 12px; font-weight: bold; color: #007bff;">
-                    ⚖️ Base: {pena_base_inicial} anos
-                </div>
+        <!-- Linha da Pena Base -->
+        <div style="position: absolute; left: {pos_base}%; top: 0; bottom: 0; width: 3px; background: #007bff; transform: translateX(-50%);">
+            <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #007bff; font-size: 12px; font-weight: bold; color: #007bff;">
+                ⚖️ Base: {pena_base_inicial:.1f} anos
             </div>
-
-            <!-- Linha da Pena Ajustada -->
-            <div style="position: absolute; left: {pos_ajustada}%; top: 0; bottom: 0; width: 3px; background: #6f42c1; transform: translateX(-50%);">
-                <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #6f42c1; font-size: 12px; font-weight: bold; color: #6f42c1;">
-                    📈 Ajustada: {pena_base_ajustada:.1f} anos
-                </div>
-            </div>
-
-            <!-- Linha da Pena Final -->
-            <div style="position: absolute; left: {pos_final}%; top: 0; bottom: 0; width: 4px; background: #dc3545; transform: translateX(-50%);">
-                <div style="position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #dc3545; font-size: 12px; font-weight: bold; color: #dc3545;">
-                    🎯 Final: {pena_final:.1f} anos
-                </div>
-            </div>
-
         </div>
 
-        <!-- Legenda dos regimes -->
-        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-            <div style="text-align: center;">
-                <div style="background: #d4f8d4; padding: 10px; border-radius: 5px; border: 1px solid #44cc44;">
-                    <strong>🔓 ABERTO</strong><br>
-                    <small>Até 4 anos</small>
-                </div>
+        <!-- Linha da Pena Ajustada -->
+        <div style="position: absolute; left: {pos_ajustada}%; top: 0; bottom: 0; width: 3px; background: #6f42c1; transform: translateX(-50%);">
+            <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #6f42c1; font-size: 12px; font-weight: bold; color: #6f42c1;">
+                📈 Ajustada: {pena_base_ajustada:.1f} anos
             </div>
-            <div style="text-align: center;">
-                <div style="background: #fff9c4; padding: 10px; border-radius: 5px; border: 1px solid #ffaa00;">
-                    <strong>🔐 SEMIABERTO</strong><br>
-                    <small>4 a 8 anos</small>
-                </div>
+        </div>
+
+        <!-- Linha da Pena Final -->
+        <div style="position: absolute; left: {pos_final}%; top: 0; bottom: 0; width: 4px; background: #dc3545; transform: translateX(-50%);">
+            <div style="position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 8px; border-radius: 10px; border: 1px solid #dc3545; font-size: 12px; font-weight: bold; color: #dc3545;">
+                🎯 Final: {pena_final:.1f} anos
             </div>
-            <div style="text-align: center;">
-                <div style="background: #ffcdd2; padding: 10px; border-radius: 5px; border: 1px solid #ff4444;">
-                    <strong>🔒 FECHADO</strong><br>
-                    <small>Acima de 8 anos</small>
-                </div>
+        </div>
+
+    </div>
+
+    <!-- Legenda dos regimes -->
+    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+        <div style="text-align: center;">
+            <div style="background: #d4f8d4; padding: 10px; border-radius: 5px; border: 1px solid #44cc44;">
+                <strong>🔓 ABERTO</strong><br>
+                <small>Até 4 anos</small>
+            </div>
+        </div>
+        <div style="text-align: center;">
+            <div style="background: #fff9c4; padding: 10px; border-radius: 5px; border: 1px solid #ffaa00;">
+                <strong>🔐 SEMIABERTO</strong><br>
+                <small>4 a 8 anos</small>
+            </div>
+        </div>
+        <div style="text-align: center;">
+            <div style="background: #ffcdd2; padding: 10px; border-radius: 5px; border: 1px solid #ff4444;">
+                <strong>🔒 FECHADO</strong><br>
+                <small>Acima de 8 anos</small>
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
     # Resumo final
     st.success(f"**RESUMO FINAL:** Pena de {pena_final:.1f} anos - Regime {regime} - {substituicao}")
@@ -439,28 +506,28 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("📊 Regimes")
-    st.table([
+    st.table(pd.DataFrame([
         {"Pena": "Até 4 anos", "Regime": "Aberto"},
         {"Pena": "4 a 8 anos", "Regime": "Semiaberto"},
         {"Pena": "Acima de 8 anos", "Regime": "Fechado"}
-    ])
+    ]))
 
 with col2:
     st.subheader("⚖️ Fatores")
-    st.table([
+    st.table(pd.DataFrame([
         {"Fator": "Atenuante", "Ajuste": "-1/6"},
         {"Fator": "Agravante", "Ajuste": "+1/6"},
         {"Fator": "Majorante", "Ajuste": "+1/6 a +1/2"},
         {"Fator": "Minorante", "Ajuste": "-1/6 a -1/3"}
-    ])
+    ]))
 
 with col3:
     st.subheader("🔀 Substituição")
-    st.table([
+    st.table(pd.DataFrame([
         {"Condição": "Pena ≤ 4 anos", "Substitui": "Sim"},
         {"Condição": "Pena > 4 anos", "Substitui": "Não"},
         {"Condição": "Réu reincidente", "Substitui": "Restrita"}
-    ])
+    ]))
 
 # Rodapé
 st.markdown("---")
