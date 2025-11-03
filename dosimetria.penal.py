@@ -1,5 +1,51 @@
 import streamlit as st
 import pandas as pd
+import os
+
+st.title("⚖️ Simulador de Dosimetria da Pena")
+st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
+
+@st.cache_data
+def carregar_dados():
+    """Carrega dados do CSV ou converte do Excel automaticamente"""
+    
+    # Primeiro tenta carregar o CSV
+    if os.path.exists('crimes_cp_final_sem_art68.csv'):
+        df = pd.read_csv('crimes_cp_final_sem_art68.csv')
+        st.sidebar.success("✅ CSV carregado automaticamente")
+        return df
+    
+    # Se não tem CSV, tenta converter do Excel
+    elif os.path.exists('crimes_cp_final_sem_art68.xlsx'):
+        df = pd.read_excel('crimes_cp_final_sem_art68.xlsx')
+        df.to_csv('crimes_cp_final_sem_art68.csv', index=False, encoding='utf-8-sig')
+        st.sidebar.success("✅ Excel convertido para CSV automaticamente")
+        return df
+    
+    # Se não tem nenhum dos dois, oferece upload
+    else:
+        st.sidebar.warning("📁 Arquivo de dados não encontrado")
+        uploaded_file = st.sidebar.file_uploader(
+            "Faça upload do arquivo de crimes (CSV ou Excel)",
+            type=['csv', 'xlsx']
+        )
+        
+        if uploaded_file is not None:
+            if uploaded_file.name.endswith('.csv'):
+                df = pd.read_csv(uploaded_file)
+            else:
+                df = pd.read_excel(uploaded_file)
+            
+            # Salva como CSV para uso futuro
+            df.to_csv('crimes_cp_final_sem_art68.csv', index=False, encoding='utf-8-sig')
+            st.sidebar.success("✅ Arquivo salvo como CSV")
+            return df
+    
+    return pd.DataFrame()
+
+# [RESTANTE DO SEU CÓDIGO DA DOSIMETRIA PERMANECE IGUAL...]
+df = carregar_dados()
+crimes_data = processar_dados_crimes(df)
 
 st.title("⚖️ Simulador de Dosimetria da Pena")
 st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
