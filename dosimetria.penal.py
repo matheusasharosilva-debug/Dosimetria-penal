@@ -43,23 +43,6 @@ def carregar_dados():
     
     return pd.DataFrame()
 
-# [RESTANTE DO SEU CÓDIGO DA DOSIMETRIA PERMANECE IGUAL...]
-df = carregar_dados()
-crimes_data = processar_dados_crimes(df)
-
-st.title("⚖️ Simulador de Dosimetria da Pena")
-st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
-
-@st.cache_data
-def carregar_dados_csv():
-    """Carrega os dados do arquivo CSV"""
-    try:
-        df = pd.read_csv('crimes_cp_final_sem_art68.csv')
-        return df
-    except FileNotFoundError:
-        st.error("Arquivo CSV não encontrado. Certifique-se de que 'crimes_cp_final_sem_art68.csv' está na mesma pasta.")
-        return pd.DataFrame()
-
 @st.cache_data
 def processar_dados_crimes(df):
     """Processa os dados dos crimes para o formato necessário"""
