@@ -90,8 +90,8 @@ def processar_dados_crimes(df):
     
     return crimes_dict
 
-# Carregar dados
-df = carregar_dados_csv()
+# Carregar dados - CORREÇÃO AQUI: usar carregar_dados() em vez de carregar_dados_csv()
+df = carregar_dados()
 crimes_data = processar_dados_crimes(df)
 
 # Sidebar
