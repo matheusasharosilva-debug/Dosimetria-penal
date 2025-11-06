@@ -3,12 +3,13 @@ import pandas as pd
 
 st.title("⚖️ Simulador de Dosimetria da Pena")
 st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
+uploaded_file = st.file_uploader("crimes_cp_final_sem_art68.csv", type=["csv"])
 
 @st.cache_data
 def carregar_dados_csv():
     """Carrega os dados do arquivo CSV - compatível com Streamlit Cloud"""
     try:
-        df = pd.read_csv('crimes_cp_final_sem_art68.csv')
+        df = pd.read_csv(uploaded_file)
         st.success("✅ Dados carregados com sucesso!")
         return df
     except FileNotFoundError:
