@@ -6,17 +6,21 @@ st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
 
 @st.cache_data
 def carregar_dados_csv():
-    """Carrega os dados do arquivo CSV"""
+    """Carrega os dados do arquivo CSV - compatível com Streamlit Cloud"""
     try:
         df = pd.read_csv('crimes_cp_final_sem_art68.csv')
+        st.success("✅ Dados carregados com sucesso!")
         return df
     except FileNotFoundError:
-        st.error("Arquivo CSV não encontrado. Certifique-se de que 'crimes_cp_final_sem_art68.csv' está na mesma pasta.")
+        st.error("❌ Arquivo CSV não encontrado. Verifique se o arquivo está no repositório GitHub.")
         return pd.DataFrame()
 
 @st.cache_data
 def processar_dados_crimes(df):
     """Processa os dados dos crimes para o formato necessário"""
+    if df.empty:
+        return {}
+        
     crimes_dict = {}
     
     for idx, row in df.iterrows():
@@ -64,6 +68,9 @@ def processar_dados_crimes(df):
 # Carregar dados
 df = carregar_dados_csv()
 crimes_data = processar_dados_crimes(df)
+
+# Resto do seu código permanece igual...
+# [Todo o resto do código da dosimetria que você já tem]
 
 # Sidebar
 st.sidebar.header("💡 Sobre")
