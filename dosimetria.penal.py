@@ -3,18 +3,9 @@ import pandas as pd
 
 st.title("⚖️ Simulador de Dosimetria da Pena")
 st.write("**Calculadora completa da dosimetria penal conforme Art. 68 do CP**")
-uploaded_file = st.file_uploader("crimes_cp_final_sem_art68.csv", type=["csv"])
 
-@st.cache_data
-def carregar_dados_csv():
-    """Carrega os dados do arquivo CSV - compatível com Streamlit Cloud"""
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.success("✅ Dados carregados com sucesso!")
-        return df
-    except FileNotFoundError:
-        st.error("❌ Arquivo CSV não encontrado. Verifique se o arquivo está no repositório GitHub.")
-        return pd.DataFrame()
+# Upload do arquivo
+uploaded_file = st.file_uploader("Faça upload do arquivo crimes_cp_final_sem_art68.csv", type=["csv"])
 
 @st.cache_data
 def processar_dados_crimes(df):
@@ -66,12 +57,37 @@ def processar_dados_crimes(df):
     
     return crimes_dict
 
-# Carregar dados
-df = carregar_dados_csv()
-crimes_data = processar_dados_crimes(df)
+# Carregar dados baseado no upload
+df = pd.DataFrame()
+crimes_data = {}
 
-# Resto do seu código permanece igual...
-# [Todo o resto do código da dosimetria que você já tem]
+if uploaded_file is not None:
+    try:
+        # Tenta diferentes codificações
+        codificacoes = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252', 'utf-8-sig']
+        
+        for encoding in codificacoes:
+            try:
+                uploaded_file.seek(0)  # Reset file pointer
+                df = pd.read_csv(uploaded_file, encoding=encoding)
+                st.success(f"✅ Dados carregados com sucesso! (Codificação: {encoding})")
+                crimes_data = processar_dados_crimes(df)
+                break
+            except (UnicodeDecodeError, pd.errors.EmptyDataError):
+                continue
+        else:
+            # Se nenhuma codificação funcionou, tenta com engine python
+            try:
+                uploaded_file.seek(0)
+                df = pd.read_csv(uploaded_file, encoding='latin-1', engine='python')
+                st.success("✅ Dados carregados com engine python")
+                crimes_data = processar_dados_crimes(df)
+            except Exception as e:
+                st.error(f"❌ Erro ao carregar arquivo: {e}")
+    except Exception as e:
+        st.error(f"❌ Erro inesperado: {e}")
+else:
+    st.info("📁 Faça upload do arquivo CSV para começar")
 
 # Sidebar
 st.sidebar.header("💡 Sobre")
@@ -82,12 +98,29 @@ st.sidebar.write(f"**📊 Crimes carregados:** {len(crimes_data)}")
 st.sidebar.write("**🔍 Buscar crime:**")
 busca = st.sidebar.text_input("Digite o artigo ou descrição:")
 
-if busca:
+if busca and crimes_data:
     crimes_filtrados = {k: v for k, v in crimes_data.items() if busca.lower() in k.lower()}
     st.sidebar.write(f"**Resultados ({len(crimes_filtrados)}):**")
     for chave in list(crimes_filtrados.keys())[:5]:
         crime_info = crimes_filtrados[chave]
         st.sidebar.write(f"**{crime_info['artigo']}** - Pena: {crime_info['pena_min']:.1f}-{crime_info['pena_max']:.1f} anos")
+
+# Se não há dados carregados, mostrar mensagem
+if not crimes_data:
+    st.warning("""
+    **⚠️ Aguardando upload do dataset**
+    
+    Para usar o simulador:
+    1. **Faça upload do arquivo `crimes_cp_final_sem_art68.csv` acima**
+    2. **Ou certifique-se que o arquivo está no repositório GitHub**
+    
+    O arquivo CSV deve conter as colunas:
+    - Artigo_Base, Artigo_Completo, Descricao_Crime
+    - Pena_Minima_Valor, Pena_Minima_Unidade
+    - Pena_Maxima_Valor, Pena_Maxima_Unidade
+    - Tipo_Penal_Estrutural
+    """)
+    st.stop()
 
 # Fase 1: Pena Base e Circunstâncias
 st.header("1️⃣ Fase 1: Pena Base e Circunstâncias")
@@ -135,7 +168,7 @@ with col2:
     st.subheader("🔼 Agravantes (Art. 61 CP)")
     agravantes = st.multiselect("Selecione as agravantes:", [
         "Reincidente específico", "Motivo fútil/torpe", "Crime contra idoso/doente", 
-        "Uso de disfarce/emboscada", "Abuso de confiança/poder", 
+        "Uso de disfarce/emboscada", "Abuso de confiança/power", 
         "Racismo/xenofobia", "Aumento do dano maliciosamente"
     ])
 
